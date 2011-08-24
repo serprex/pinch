@@ -106,9 +106,9 @@ int main(int argc,char**argv){
 	for(int i=1;i<argc;i+=2){
 		id++;
 		if(argv[i][0]=='+'){
-			i--;
 			if(strlen(argv[i])>1)
 				id+=atoi(argv[i]+1)-1;
+			i--;
 			continue;
 		}
 		if(i>1)putc(',',f);
