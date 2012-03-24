@@ -9,20 +9,27 @@ int wid,hei,wi4;
 png_bytep*rows,road;
 void readpng(char*fame){
 	FILE*fp=fopen(fame,"rb");
-	if(!fp)abort_("%s??",fame);
+	if(!fp)abort_("%s??\n",fame);
 	png_structp png_ptr=png_create_read_struct(PNG_LIBPNG_VER_STRING,0,0,0);
-	if(!png_ptr)abort_("%s png_create_read_struct",fame);
+	if(!png_ptr)abort_("%s png_create_read_struct\n",fame);
 	png_infop info_ptr=png_create_info_struct(png_ptr);
-	if(!info_ptr)abort_("%s png_create_info_struct",fame);
-	if(setjmp(png_jmpbuf(png_ptr)))abort_("%s init_io",fame);
+	if(!info_ptr)abort_("%s png_create_info_struct\n",fame);
+	if(setjmp(png_jmpbuf(png_ptr)))abort_("%s init_io\n",fame);
 	png_init_io(png_ptr,fp);
 	png_read_info(png_ptr,info_ptr);
 	wi4=png_get_image_width(png_ptr,info_ptr);
 	wid=wi4<<2;
 	hei=png_get_image_height(png_ptr,info_ptr);
-	if(png_get_color_type(png_ptr,info_ptr)!=PNG_COLOR_TYPE_RGBA)abort_("%s %d not rgba",fame,png_get_color_type(png_ptr,info_ptr));
+	int e;
+	if((e=png_get_color_type(png_ptr,info_ptr))!=PNG_COLOR_TYPE_RGBA)
+	{
+		if(e==PNG_COLOR_TYPE_RGB)
+			png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
+		else
+			abort_("%s %d not rgba\n",fame,e);
+	}
 	png_read_update_info(png_ptr,info_ptr);
-	if(setjmp(png_jmpbuf(png_ptr)))abort_("%s read_image",fame);
+	if(setjmp(png_jmpbuf(png_ptr)))abort_("%s read_image\n",fame);
 	rows=malloc((wid+sizeof(png_bytep))*hei);
 	road=((void*)rows)+sizeof(png_bytep)*hei;
 	for(int y=0;y<hei;y++)rows[y]=road+(hei-y-1)*wid;
@@ -113,7 +120,7 @@ int main(int argc,char**argv){
 		}
 		if(i>1)putc(',',f);
 		char*a=argv[i];
-		fprintf(f,"%sW=%d,%sH=%d,%sF=%d,%sT=%d,%sB=%d",a,di[0],a,di[1],a,di[2],a,id,a,bpp(di[2]));
+		fprintf(f,"%sW=%d,%sH=%d,%sF=%d,%sT=%d,%sBPP=%d",a,di[0],a,di[1],a,di[2],a,id,a,bpp(di[2]));
 		di+=3;
 	}
 	fprintf(f,";\n#define TLEN %d",id+1);

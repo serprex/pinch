@@ -1,6 +1,9 @@
-all:pinch install
+all:pinch bitch install
 pinch:pinch.c
 	gcc -std=gnu99 -O3 -s pinch.c -o pinch -fwhole-program -lpng
+bitch:bitch.c
+	gcc -std=gnu99 -O3 -s bitch.c -o bitch -fwhole-program -lpng
 install:
-	rm -f /usr/local/bin/pinch
+	rm -f /usr/local/bin/pinch /usr/local/bin/bitch
+	ln bitch /usr/local/bin
 	ln pinch /usr/local/bin
