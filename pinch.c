@@ -58,7 +58,7 @@ int main(int argc,char**argv){
 		}
 		if(i>1)putc(',',f);
 		char*a=argv[i];
-		fprintf(f,"%sW=%d,%sH=%d,%sF=%d,%sT=%d",a,di[0],a,di[1],a,di[2],a,id,a);
+		fprintf(f,"%sW=%d,%sH=%d,%sF=%d,%sT=%d",a,di[0],a,di[1],a,di[2],a,id);
 		di+=3;
 	}
 	fprintf(f,";\n#define TLEN %d",id+1);
