@@ -10,7 +10,7 @@ int main(int argc,char**argv){
 		if(i>1)putc(',',f);
 		fprintf(f,"%sB[%d]=\"",argv[i],wi4*hei>>3);
 		for(int y=0;y<hei;y++){
-			for(int x=0;x<wid;x+=csz*8){
+			for(int x=csz-1;x<wid;x+=csz*8){
 				fprintf(f,"\\%o",
 				!road[y*wid+x]|
 				!road[y*wid+x+csz]<<1|
