@@ -68,7 +68,7 @@ int main(int argc,char**argv){
 			for(int k=0;k<frs;k++){
 				o+=rlap(fr+j,fr+k);
 			}
-			if(o<mno&&fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
+			if(o<=mno&&fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
 				mno=o;
 				mna=fr[j].a;
 				f=j;
