@@ -1,18 +1,36 @@
+#include <stdint.h>
 #include "ch.h"
 typedef struct{
-	unsigned short x,y,w,h;
+	uint16_t x,y,w,h;
 	char*n;
 	png_bytep s;
 }spr;
 typedef struct{
-	unsigned short x,y,w,h;
-	unsigned a;
+	uint16_t x,y,w,h;
+	uint32_t a;
 }rect;
 rect*fr;
 int frs=1;
+int inrng(int x, int mn, int mx)
+{
+	return x>=mn&&x<mx;
+}
+
+int rlap(rect*a,rect*b)
+{
+    return (inrng(a->x,b->x,b->x+b->w)||inrng(b->x,a->x,a->x+a->w))&&
+		(inrng(a->y,b->y,b->y+b->h)||inrng(b->y,a->y,a->y+a->h));
+}
+void mkrect(rect*r,uint16_t x,uint16_t y,uint16_t w,uint16_t h){
+	r->x=x;
+	r->y=y;
+	r->w=w;
+	r->h=h;
+	r->a=w*h;
+}
 int sprcmp(void*a,void*b)
 {
-	return ((spr*)b)->h-((spr*)a)->h;
+	return ((spr*)b)->w*((spr*)b)->h-((spr*)a)->w*((spr*)a)->h;
 }
 int main(int argc,char**argv){
 	FILE*f=fopen("sgen.c","w");
@@ -40,22 +58,18 @@ int main(int argc,char**argv){
 	}
 	qsort(S,argc-1,sizeof(spr),(__compar_fn_t)sprcmp);
 	fr=malloc(sizeof(rect));
-	fr->x=0;
-	fr->y=0;
-	fr->w=Swid=np2(Swid);
-	fr->h=Shei=np2(Shei);
-	fr->a=fr->w*fr->h;
+	mkrect(fr,0,0,Swid=np2(Swid),Shei=np2(Shei));
 	for(int i=0;i<argc-1;i++){
 		spr*s=S+i;
 		newjj:;
-		int f=-1,mna=Swid*Shei;
+		int f,mna=INT_MAX;
 		for(int j=0;j<frs;j++){
-			if(fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h&&s->w*s->h<=fr[j].a){
+			if(fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
 				mna=fr[j].a;
 				f=j;
 			}
 		}
-		if(f==-1){
+		if(mna==INT_MAX){
 			if(Swid<Shei){
 				for(int j=0;j<frs;j++)
 					if(fr[j].x+fr[j].w==Swid){
@@ -76,42 +90,55 @@ int main(int argc,char**argv){
 		}
 		s->x=fr[f].x;
 		s->y=fr[f].y;
-		if(s->w==fr[f].w||s->h==fr[f].h){
-			if(s->w==fr[f].w&&s->h==fr[f].h){
-				memmove(fr+f,fr+f+1,(frs-f-1)*sizeof(rect));
-				frs--;
-			}else if(s->w==fr[f].w){
-				fr[f].y+=s->h;
-				fr[f].h-=s->h;
-				fr[f].a=fr[f].w*fr[f].h;
-			}else{
-				fr[f].x+=s->w;
-				fr[f].w-=s->w;
-				fr[f].a=fr[f].w*fr[f].h;
+		for(int i=0;i<frs;i++){
+			if(rlap((rect*)s,fr+i)){
+				rect r=fr[i];
+				fr[i--]=fr[--frs];
+				fr=realloc(fr,(frs+4)*sizeof(rect));
+				if(s->x>r.x){
+					mkrect(fr+frs++,r.x,r.y,s->x-r.x,r.h);
+				}
+				if(s->x+s->w<r.x+r.w){
+					mkrect(fr+frs++,s->x+s->w,r.y,r.x+r.w-s->x-s->w,r.h);
+				}
+				if(s->y>r.y){
+					mkrect(fr+frs++,r.x,r.y,r.w,s->y-r.y);
+				}
+				if(s->y+s->h<r.y+r.h){
+					mkrect(fr+frs++,r.x,s->y+s->h,r.w,r.y+r.h-s->y-s->h);
+				}
 			}
-		}else{
-			fr=realloc(fr,(++frs)*sizeof(rect));
-			fr[frs-1].x=fr[f].x;
-			fr[frs-1].y=fr[f].y+s->h;
-			fr[frs-1].w=s->w;
-			fr[frs-1].h=fr[f].h-s->h;
-			fr[frs-1].a=fr[frs-1].w*fr[frs-1].h;
-			fr[f].x+=s->w;
-			fr[f].w-=s->w;
-			fr[f].a=fr[f].w*fr[f].h;
 		}
 	}
+	for(;;){
+		Swid>>=1;
+		for(int i=0;i<frs;i++)
+			if(fr[i].x+fr[i].w>Swid){
+				Swid<<=1;
+				goto fw;
+			}
+	}
+	fw:
+	for(;;){
+		Shei>>=1;
+		for(int i=0;i<argc-1;i++)
+			if(S[i].y+S[i].h>Shei){
+				Shei<<=1;
+				goto fh;
+			}
+	}
+	fh:
 	fprintf(f,"S[%d]=\"",Swid*Shei*csz);
-	unsigned char Sdata[Swid*Shei*csz];
-	memset(Sdata,0,sizeof(Sdata));
+	printf("%dx%d frs=%d\n",Swid,Shei,frs);
+	free(fr);
+	unsigned char*Sdata=calloc(Swid*Shei*csz,1);
 	for(int i=0;i<argc-1;i++){
 		spr*s=S+i;
-		printf("%s:%d,%d,%d,%d\n",S[i].n,S[i].x,S[i].y,S[i].w,S[i].h);
 		for(int y=s->h-1;y>=0;y--)
 			for(int x=0;x<s->w;x++)
 				memcpy(Sdata+(s->x+x+(s->y+y)*Swid)*csz,s->s+(x+y*s->w)*csz,csz);
 	}
-	for(int i=0;i<sizeof(Sdata);i++)
+	for(int i=0;i<Swid*Shei*csz;i++)
 		fprintf(f,"\\%o",Sdata[i]);
 	fputs("\";",f);
 	fclose(f);
@@ -123,7 +150,7 @@ int main(int argc,char**argv){
 	case(4)Fmt=GL_RGBA;
 	}
 	f=fopen("sgen.h","w");
-	fprintf(f,"extern const unsigned char S[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,Swid,Shei,csz);
+	fprintf(f,"extern const unsigned char S[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,Swid,Shei,Fmt);
 	for(int i=0;i<argc-1;i++){
 		spr*s=S+i;
 		fprintf(f,",%sx=%d,%sy=%d,%sw=%d,%sh=%d",s->n,s->x,s->n,s->y,s->n,s->w,s->n,s->h);
