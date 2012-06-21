@@ -62,9 +62,14 @@ int main(int argc,char**argv){
 	for(int i=0;i<argc-1;i++){
 		spr*s=S+i;
 		newjj:;
-		int f,mna=INT_MAX;
+		int f,mna=INT_MAX,mno=INT_MAX;
 		for(int j=0;j<frs;j++){
-			if(fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
+			int o=0;
+			for(int k=0;k<frs;k++){
+				o+=rlap(fr+j,fr+k);
+			}
+			if(o<mno&&fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
+				mno=o;
 				mna=fr[j].a;
 				f=j;
 			}
