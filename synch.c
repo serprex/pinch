@@ -65,10 +65,9 @@ int main(int argc,char**argv){
 		int f,mna=INT_MAX,mno=INT_MAX;
 		for(int j=0;j<frs;j++){
 			int o=0;
-			for(int k=0;k<frs;k++){
+			for(int k=0;k<frs;k++)
 				o+=rlap(fr+j,fr+k);
-			}
-			if(o<=mno&&fr[j].a<mna&&s->w<fr[j].w&&s->h<fr[j].h){
+			if(s->w<fr[j].w&&s->h<fr[j].h&&(o<mno||(o==mno&&fr[j].a<mna))){
 				mno=o;
 				mna=fr[j].a;
 				f=j;
@@ -135,13 +134,25 @@ int main(int argc,char**argv){
 	fh:
 	fprintf(f,"S[%d]=\"",Swid*Shei*csz);
 	printf("%dx%d frs=%d\n",Swid,Shei,frs);
-	free(fr);
+	//free(fr);
 	unsigned char*Sdata=calloc(Swid*Shei*csz,1);
 	for(int i=0;i<argc-1;i++){
 		spr*s=S+i;
-		for(int y=s->h-1;y>=0;y--)
+		for(int y=0;y<s->h;y++)
 			for(int x=0;x<s->w;x++)
 				memcpy(Sdata+(s->x+x+(s->y+y)*Swid)*csz,s->s+(x+y*s->w)*csz,csz);
+	}
+	for(int i=0;i<frs;i++){
+		rect*r=fr+i;
+		int x=0,y=0;
+		for(int y=0;y<r->h;y++){
+			if(r->x+x<Swid&&r->y+y<Shei)
+				memset(Sdata+(r->x+x+(r->y+y)*Swid)*csz,-1,3);
+		}
+		for(int x=0;x<r->w;x++){
+			if(r->x+x<Swid&&r->y+y<Shei)
+				memset(Sdata+(r->x+x+(r->y+y)*Swid)*csz,-1,3);
+		}
 	}
 	for(int i=0;i<Swid*Shei*csz;i++)
 		fprintf(f,"\\%o",Sdata[i]);
