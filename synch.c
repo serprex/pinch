@@ -11,11 +11,11 @@ typedef struct{
 }rect;
 rect*fr;
 int frs=1;
-int inrng(int x, int mn, int mx)
+int inrng(int x,int mn,int mx){return x>=mn&&x<mx;}
+int rin(rect*a,rect*b)
 {
-	return x>=mn&&x<mx;
+	return a->x>=b->x&&a->y>=b->y&&a->x+a->w<=b->x+b->w&&a->y+a->h<=b->y+b->h;
 }
-
 int rlap(rect*a,rect*b)
 {
     return (inrng(a->x,b->x,b->x+b->w)||inrng(b->x,a->x,a->x+a->w))&&
@@ -28,13 +28,19 @@ void mkrect(rect*r,uint16_t x,uint16_t y,uint16_t w,uint16_t h){
 	r->h=h;
 	r->a=w*h;
 }
+void mkfr(uint16_t x,uint16_t y,uint16_t w,uint16_t h){
+	mkrect(fr+frs,x,y,w,h);
+	for(int i=0;i<frs;i++){
+		if(rin(fr+frs,fr+i))
+			return;
+	}
+	frs++;
+}
 int sprcmp(void*a,void*b)
 {
 	return ((spr*)b)->w*((spr*)b)->h-((spr*)a)->w*((spr*)a)->h;
 }
 int main(int argc,char**argv){
-	FILE*f=fopen("sgen.c","w");
-	fputs("const unsigned char ",f);
 	int Fmt=-1;
 	spr S[argc-1];
 	unsigned Swid=1,Shei=1;
@@ -56,40 +62,56 @@ int main(int argc,char**argv){
 		s->s=road;
 		s->n=argv[i];
 	}
-	qsort(S,argc-1,sizeof(spr),(__compar_fn_t)sprcmp);
+	qsort(S,--argc,sizeof(spr),(__compar_fn_t)sprcmp);
 	fr=malloc(sizeof(rect));
 	mkrect(fr,0,0,Swid=np2(Swid),Shei=np2(Shei));
-	for(int i=0;i<argc-1;i++){
+	for(int i=0;i<argc;i++){
 		spr*s=S+i;
+		int js=0,sw=Swid,sh=Shei;
 		newjj:;
 		int f,mna=INT_MAX,mno=INT_MAX;
 		for(int j=0;j<frs;j++){
-			int o=0;
-			for(int k=0;k<frs;k++)
-				o+=rlap(fr+j,fr+k);
-			if(s->w<fr[j].w&&s->h<fr[j].h&&(o<mno||(o==mno&&fr[j].a<mna))){
+			if(fr[j].a<mna&&s->w<=fr[j].w&&s->h<=fr[j].h)){
 				mno=o;
 				mna=fr[j].a;
 				f=j;
 			}
 		}
 		if(mna==INT_MAX){
-			if(Swid<Shei){
-				for(int j=0;j<frs;j++)
-					if(fr[j].x+fr[j].w==Swid){
-						fr[j].w+=Swid;
+			Swid=sw;
+			Shei=sh;
+			int w=1,h=1;
+			if(s->w>Swid)
+				w+=s->w/Swid;
+			if(s->h>Shei)
+				h+=s->h/Shei;
+			if((!w&&!h)||js){
+				int js3=js&3;
+				if(js3==2){
+					w+=js>>2;
+					h+=js>>2;
+				}else{
+					if(js3==3){
+						js++;
+						js3=0;
+					}
+					if((Shei>Swid)^(js3&1))
+						w+=js>>2;
+					else
+						h+=js>>2;
+				}
+			}
+			for(int i=0;i<2;i++)
+				for(int j=0;j<frs;j++){
+					int16_t*xw=(int16_t*)(fr+j);
+					if(xw[i]+xw[i+2]>=(i?Shei:Swid)){
+						xw[i+2]=(i?Shei*h:Swid*w)-xw[i];
 						fr[j].a=fr[j].w*fr[j].h;
 					}
-				Swid<<=1;
-			}
-			else{
-				for(int j=0;j<frs;j++)
-					if(fr[j].y+fr[f].h==Shei){
-						fr[j].h+=Shei;
-						fr[j].a=fr[j].w*fr[j].h;
-					}
-				Shei<<=1;
-			}
+				}
+			Swid*=w;
+			Shei*=h;
+			js++;
 			goto newjj;
 		}
 		s->x=fr[f].x;
@@ -99,44 +121,21 @@ int main(int argc,char**argv){
 				rect r=fr[i];
 				fr[i--]=fr[--frs];
 				fr=realloc(fr,(frs+4)*sizeof(rect));
-				if(s->x>r.x){
-					mkrect(fr+frs++,r.x,r.y,s->x-r.x,r.h);
-				}
-				if(s->x+s->w<r.x+r.w){
-					mkrect(fr+frs++,s->x+s->w,r.y,r.x+r.w-s->x-s->w,r.h);
-				}
-				if(s->y>r.y){
-					mkrect(fr+frs++,r.x,r.y,r.w,s->y-r.y);
-				}
-				if(s->y+s->h<r.y+r.h){
-					mkrect(fr+frs++,r.x,s->y+s->h,r.w,r.y+r.h-s->y-s->h);
-				}
+				if(s->x>r.x)
+					mkfr(r.x,r.y,s->x-r.x,r.h);
+				if(s->x+s->w<r.x+r.w)
+					mkfr(s->x+s->w,r.y,r.x+r.w-s->x-s->w,r.h);
+				if(s->y>r.y)
+					mkfr(r.x,r.y,r.w,s->y-r.y);
+				if(s->y+s->h<r.y+r.h)
+					mkfr(r.x,s->y+s->h,r.w,r.y+r.h-s->y-s->h);
 			}
 		}
 	}
-	for(;;){
-		Swid>>=1;
-		for(int i=0;i<frs;i++)
-			if(fr[i].x+fr[i].w>Swid){
-				Swid<<=1;
-				goto fw;
-			}
-	}
-	fw:
-	for(;;){
-		Shei>>=1;
-		for(int i=0;i<argc-1;i++)
-			if(S[i].y+S[i].h>Shei){
-				Shei<<=1;
-				goto fh;
-			}
-	}
-	fh:
-	fprintf(f,"S[%d]=\"",Swid*Shei*csz);
 	printf("%dx%d frs=%d\n",Swid,Shei,frs);
 	//free(fr);
 	unsigned char*Sdata=calloc(Swid*Shei*csz,1);
-	for(int i=0;i<argc-1;i++){
+	for(int i=0;i<argc;i++){
 		spr*s=S+i;
 		for(int y=0;y<s->h;y++)
 			for(int x=0;x<s->w;x++)
@@ -144,19 +143,38 @@ int main(int argc,char**argv){
 	}
 	for(int i=0;i<frs;i++){
 		rect*r=fr+i;
-		int x=0,y=0;
+		int x=0,y=0,c[3]={rand()&255,rand()&255,rand()&255};
 		for(int y=0;y<r->h;y++){
 			if(r->x+x<Swid&&r->y+y<Shei)
-				memset(Sdata+(r->x+x+(r->y+y)*Swid)*csz,-1,3);
+				for(int i=0;i<3;i++)
+					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
 		}
 		for(int x=0;x<r->w;x++){
 			if(r->x+x<Swid&&r->y+y<Shei)
-				memset(Sdata+(r->x+x+(r->y+y)*Swid)*csz,-1,3);
+				for(int i=0;i<3;i++)
+					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
+		}
+		x=r->w,y=r->h;
+		for(int y=0;y<r->h;y++){
+			if(r->x+x<Swid&&r->y+y<Shei)
+				for(int i=0;i<3;i++)
+					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
+		}
+		for(int x=0;x<r->w;x++){
+			if(r->x+x<Swid&&r->y+y<Shei)
+				for(int i=0;i<3;i++)
+					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
 		}
 	}
+	FILE*f=fopen("sgen.c","w");
+	fprintf(f,"#include <stdint.h>\ntypedef struct{uint16_t x,y,w,h;}spr;const unsigned char S[%d]=\"",Swid*Shei*csz);
 	for(int i=0;i<Swid*Shei*csz;i++)
 		fprintf(f,"\\%o",Sdata[i]);
-	fputs("\";",f);
+	fprintf(f,"\";spr Spr[%d]={",argc);
+	for(int i=0;i<argc;i++){
+		fprintf(f,"{%d,%d,%d,%d},",S[i].x,S[i].y,S[i].w,S[i].h);
+	}
+	fputs("};",f);
 	fclose(f);
 	switch(Fmt){
 	default:__builtin_unreachable();
@@ -166,10 +184,8 @@ int main(int argc,char**argv){
 	case(4)Fmt=GL_RGBA;
 	}
 	f=fopen("sgen.h","w");
-	fprintf(f,"extern const unsigned char S[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,Swid,Shei,Fmt);
-	for(int i=0;i<argc-1;i++){
-		spr*s=S+i;
-		fprintf(f,",%sx=%d,%sy=%d,%sw=%d,%sh=%d",s->n,s->x,s->n,s->y,s->n,s->w,s->n,s->h);
-	}
+	fprintf(f,"#include <stdint.h>\ntypedef struct{uint16_t x,y,w,h;}spr;extern const unsigned char S[%d];extern const spr Spr[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,argc,Swid,Shei,Fmt);
+	for(int i=0;i<argc;i++)
+		fprintf(f,",%s=%d",S[i].n,i);
 	fputc(';',f);
 }
