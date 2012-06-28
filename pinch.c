@@ -26,7 +26,7 @@ int main(int argc,char**argv){
 			int x=0;
 			for(;x<wid;x++)
 				fprintf(f,"\\%o",road[y*wid+x]);
-			for(;x<np2(wid);i++)
+			for(;x<np2(wid);x++)
 				fputs("\\0",f);
 		}
 		for(int i=0;i<(np2(hei)-hei)*wid;i++)

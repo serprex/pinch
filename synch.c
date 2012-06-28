@@ -69,10 +69,9 @@ int main(int argc,char**argv){
 		spr*s=S+i;
 		int js=0,sw=Swid,sh=Shei;
 		newjj:;
-		int f,mna=INT_MAX,mno=INT_MAX;
+		int f,mna=INT_MAX;
 		for(int j=0;j<frs;j++){
-			if(fr[j].a<mna&&s->w<=fr[j].w&&s->h<=fr[j].h)){
-				mno=o;
+			if(fr[j].a<mna&&s->w<=fr[j].w&&s->h<=fr[j].h){
 				mna=fr[j].a;
 				f=j;
 			}
@@ -133,7 +132,7 @@ int main(int argc,char**argv){
 		}
 	}
 	printf("%dx%d frs=%d\n",Swid,Shei,frs);
-	//free(fr);
+	free(fr);
 	unsigned char*Sdata=calloc(Swid*Shei*csz,1);
 	for(int i=0;i<argc;i++){
 		spr*s=S+i;
@@ -141,36 +140,11 @@ int main(int argc,char**argv){
 			for(int x=0;x<s->w;x++)
 				memcpy(Sdata+(s->x+x+(s->y+y)*Swid)*csz,s->s+(x+y*s->w)*csz,csz);
 	}
-	for(int i=0;i<frs;i++){
-		rect*r=fr+i;
-		int x=0,y=0,c[3]={rand()&255,rand()&255,rand()&255};
-		for(int y=0;y<r->h;y++){
-			if(r->x+x<Swid&&r->y+y<Shei)
-				for(int i=0;i<3;i++)
-					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
-		}
-		for(int x=0;x<r->w;x++){
-			if(r->x+x<Swid&&r->y+y<Shei)
-				for(int i=0;i<3;i++)
-					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
-		}
-		x=r->w,y=r->h;
-		for(int y=0;y<r->h;y++){
-			if(r->x+x<Swid&&r->y+y<Shei)
-				for(int i=0;i<3;i++)
-					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
-		}
-		for(int x=0;x<r->w;x++){
-			if(r->x+x<Swid&&r->y+y<Shei)
-				for(int i=0;i<3;i++)
-					Sdata[(r->x+x+(r->y+y)*Swid)*csz+i]=c[i];
-		}
-	}
 	FILE*f=fopen("sgen.c","w");
-	fprintf(f,"#include <stdint.h>\ntypedef struct{uint16_t x,y,w,h;}spr;const unsigned char S[%d]=\"",Swid*Shei*csz);
+	fprintf(f,"#include <stdint.h>\nconst unsigned char S[%d]=\"",Swid*Shei*csz);
 	for(int i=0;i<Swid*Shei*csz;i++)
 		fprintf(f,"\\%o",Sdata[i]);
-	fprintf(f,"\";spr Spr[%d]={",argc);
+	fprintf(f,"\";const struct spr{uint16_t x,y,w,h;}spr[%d]={",argc);
 	for(int i=0;i<argc;i++){
 		fprintf(f,"{%d,%d,%d,%d},",S[i].x,S[i].y,S[i].w,S[i].h);
 	}
@@ -184,7 +158,7 @@ int main(int argc,char**argv){
 	case(4)Fmt=GL_RGBA;
 	}
 	f=fopen("sgen.h","w");
-	fprintf(f,"#include <stdint.h>\ntypedef struct{uint16_t x,y,w,h;}spr;extern const unsigned char S[%d];extern const spr Spr[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,argc,Swid,Shei,Fmt);
+	fprintf(f,"#include <stdint.h>\nextern const unsigned char S[%d];extern const struct spr{uint16_t x,y,w,h;} spr[%d];static const int Swid=%d,Shei=%d,Sfmt=%d",Swid*Shei*csz,argc,Swid,Shei,Fmt);
 	for(int i=0;i<argc;i++)
 		fprintf(f,",%s=%d",S[i].n,i);
 	fputc(';',f);
