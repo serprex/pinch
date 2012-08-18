@@ -1,0 +1,16 @@
+cc=gcc -std=gnu11 -Os -pipe
+rule cc
+ command=$cc -s -fwhole-program -lpng $in -o $out
+build bitch:cc bitch.c ch.h
+build pinch:cc pinch.c ch.h
+build synch:cc synch.c ch.h
+rule stest
+ command=./synch c a b r&&$cc -g sgen.c stest.c -o stest -lglfw -lGL&&./stest
+build test:stest
+rule install
+ command=rm -f /usr/local/bin/bitch /usr/local/bin/pinch /usr/local/bin/synch;ln bitch /usr/local/bin;ln pinch /usr/local/bin;ln synch /usr/local/bin
+rule uninstall
+ command=rm -f /usr/local/bin/bitch /usr/local/bin/pinch /usr/local/bin/synch
+build install: install
+build uninstall: uninstall
+default bitch pinch synch
